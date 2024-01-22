@@ -12,7 +12,13 @@ Ainsi que Django Django REST framework installé, [site offciel](https://www.dja
 
 ## Installation
 
-D'abord, clonez le projet : 
+Avant tout, installer pip env si il ne l'est pas déjà :
+```
+$ pip install pipenv
+```
+
+
+Clonez le projet : 
 ```
 $ git clone https://github.com/Nantosuelte88/Projet-10.git
 ```
