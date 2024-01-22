@@ -34,11 +34,6 @@ Pour l'activer sur Unix et MacOS :
 $ pipenv shell
 ```
 
-Installez les dépendances :
-```
-$ pip install -r requirements.txt
-```
-
 Appliquez les migrations :
 ```
 $ python manage.py migrate
