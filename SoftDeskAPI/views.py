@@ -1,10 +1,31 @@
-from django.shortcuts import render
-from rest_framework import viewsets
+from django.http import JsonResponse
 
-from .models import Project
-from .serializers import ProjectSerializer
+from rest_framework.viewsets import ModelViewSet
+
+from .models import Project, Issue, Comment
+from .serializers import ProjectSerializer, IssueSerializer, CommentSerializer
 
 
-class ProjectViewSet(viewsets.ModelViewSet):
+def api_home(request):
+    return JsonResponse({'message': 'Welcome to the SoftDesk API!'})
+
+
+class ProjectViewset(ModelViewSet):
     serializer_class = ProjectSerializer
-    queryset = Project.objects.all()
+
+    def get_queryset(self):
+        return Project.objects.all()
+
+
+class IssueViewset(ModelViewSet):
+    serializer_class = IssueSerializer
+
+    def get_queryset(self):
+        return Issue.objects.all()
+
+
+class CommentViewset(ModelViewSet):
+    serializer_class = CommentSerializer
+
+    def get_queryset(self):
+        return Comment.objects.all()

@@ -56,10 +56,3 @@ class Comment(models.Model):
     author_comment = models.ForeignKey(User, on_delete=models.CASCADE)
     description = models.TextField()
     created_on = models.DateTimeField(auto_now_add=True)
-    issue_link = models.URLField()
-
-    def save(self, *args, **kwargs):
-        # Génération d'un lien vers l'issue basé sur l'URL de votre application
-        if not self.issue_link:
-            self.issue_link = f'/issues/{self.issue}/'
-        super().save(*args, **kwargs)
