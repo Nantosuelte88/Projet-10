@@ -14,5 +14,10 @@ def validate_age(date_of_birth):
 
 class User(AbstractUser):
     date_of_birth = models.DateField(validators=[validate_age])
-    can_be_contacted = models.BooleanField(default=True)
-    can_data_be_shared = models.BooleanField(default=True)
+    can_be_contacted = models.BooleanField()
+    can_data_be_shared = models.BooleanField()
+
+    def save(self, *args, **kwargs):
+        if self._state.adding and self.is_active is None:
+            self.is_active = True
+        super().save(*args, **kwargs)
