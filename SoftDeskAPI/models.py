@@ -12,17 +12,20 @@ class Project (models.Model):
         ('Android', 'Android'),
     ]
 
-    author_project = models.ForeignKey(User, on_delete=models.CASCADE, related_name='authored_projects')
+    author_project = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
     description = models.TextField(blank=True, null=True)
     type = models.CharField(max_length=10, choices=TYPE_CHOICES)
     created_on = models.DateTimeField(auto_now_add=True)
-    contributors = models.ManyToManyField(User, through='Contributor', related_name='projects')
+    contributors = models.ManyToManyField(User, through='Contributor', related_name='contributor_projects')
 
 
 class Contributor (models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
+
+    class Meta:
+        unique_together = ('user', 'project')
 
 
 class Issue (models.Model):
@@ -56,8 +59,8 @@ class Issue (models.Model):
 
 class Comment(models.Model):
     uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
-    issue = models.ForeignKey(Issue, on_delete=models.CASCADE)
-    author_comment = models.ForeignKey(Contributor, on_delete=models.CASCADE)
+    issue = models.ForeignKey(Issue, on_delete=models.CASCADE, related_name='comments')
+    author_comment = models.ForeignKey(User, on_delete=models.CASCADE)
     description = models.TextField()
     created_on = models.DateTimeField(auto_now_add=True)
     # faire le lien

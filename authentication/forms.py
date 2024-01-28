@@ -4,13 +4,10 @@ from .models import User
 
 
 class UserRegistrationForm(UserCreationForm):
-    # Ajoutez des widgets pour les champs booléens
     can_be_contacted = forms.BooleanField(initial=True, required=False, widget=forms.CheckboxInput())
     can_data_be_shared = forms.BooleanField(initial=True, required=False, widget=forms.CheckboxInput())
 
-    class Meta:
+    class Meta(UserCreationForm.Meta):
         model = User
         fields = ['username', 'email', 'password1', 'password2', 'date_of_birth',
                   'can_be_contacted', 'can_data_be_shared']
-
-
