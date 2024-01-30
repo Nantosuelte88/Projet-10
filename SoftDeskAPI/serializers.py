@@ -33,6 +33,19 @@ class ProjectDetailSerializer(ModelSerializer):
         model = Project
         fields = '__all__'
 
+    def update(self, instance, validated_data):
+        if 'contributors' in self.context['request'].data:
+            contributors = self.context['request'].data.get('contributors').split(',')
+            if contributors and contributors != ['']:
+                if str(instance.author_project.id) not in contributors:
+                    contributors.append(str(instance.author_project.id))
+            else:
+                contributors = [str(instance.author_project.id)]
+            instance.contributors.set(contributors)
+
+        instance = super().update(instance, validated_data)
+        return instance
+
 
 class IssueSerializer(ModelSerializer):
     class Meta:

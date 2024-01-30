@@ -18,4 +18,5 @@ class IsCommentAuthor(BasePermission):
 
 class IsProjectContributor(BasePermission):
     def has_object_permission(self, request, view, obj):
-        return obj.contributor == request.user
+        if obj.contributors.filter(id=request.user.id).exists():
+            return True

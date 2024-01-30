@@ -1,6 +1,7 @@
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
-from .permissions import IsProjectAuthor, IsIssueAuthor, IsCommentAuthor
+from .permissions import IsProjectAuthor, IsIssueAuthor, \
+    IsCommentAuthor, IsProjectContributor
 from rest_framework.generics import RetrieveUpdateDestroyAPIView
 
 from rest_framework.viewsets import ModelViewSet
@@ -29,7 +30,7 @@ class ProjectViewset(ModelViewSet):
     detail_serializer_class = ProjectDetailSerializer
 
     def get_serializer_class(self):
-        if self.action == 'retrieve':
+        if self.action in ['retrieve', 'update', 'partial_update']:
             return self.detail_serializer_class
         return super().get_serializer_class()
 
@@ -57,6 +58,8 @@ class IssueViewset(ModelViewSet):
     def get_permissions(self):
         if self.action in ['update', 'partial_update', 'destroy']:
             permission_classes = [IsAuthenticated, IsIssueAuthor]
+        elif self.action == 'list':
+            permission_classes = [IsAuthenticated, IsProjectContributor]
         else:
             permission_classes = self.permission_classes
         return [permission() for permission in permission_classes]
