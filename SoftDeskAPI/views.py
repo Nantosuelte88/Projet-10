@@ -1,4 +1,6 @@
 from rest_framework import status
+from rest_framework.decorators import action
+
 from rest_framework.permissions import IsAuthenticated
 from .permissions import IsProjectAuthor, IsIssueAuthor, \
     IsCommentAuthor, IsProjectContributor
@@ -8,9 +10,9 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework.views import APIView
 from rest_framework.response import Response
 
-from .models import Project, Issue, Comment
-from .serializers import ProjectListSerializer, IssueSerializer, \
-    CommentSerializer, ProjectDetailSerializer
+from .models import Project, Issue, Comment, User, Contributor
+from .serializers import ProjectListSerializer, ContributorSerializer,\
+    IssueSerializer, CommentSerializer, ProjectDetailSerializer
 
 
 class ApiHome(APIView):
@@ -35,17 +37,72 @@ class ProjectViewset(ModelViewSet):
         return super().get_serializer_class()
 
     def get_permissions(self):
-        if self.action in ['update', 'partial_update', 'destroy']:
+        if self.action == 'retrieve':
+            permission_classes = [IsAuthenticated, IsProjectContributor]
+        elif self.action in ['update', 'partial_update', 'destroy', 'contributors']:
             permission_classes = [IsAuthenticated, IsProjectAuthor]
         else:
             permission_classes = self.permission_classes
         return [permission() for permission in permission_classes]
 
     def perform_create(self, serializer):
-        contributors = self.request.data.get('contributors', '')
-        contributors = [contributor.strip() for contributor in contributors.split(',')]
-        contributors.insert(0, self.request.user)
-        serializer.save(author_project=self.request.user, contributors=contributors)
+        project = serializer.save(author_project=self.request.user)
+        project.contributors.add(self.request.user)
+
+    def get_contributors_queryset(self):
+        project = self.get_object()
+        return Contributor.objects.filter(project=project)
+
+    @action(detail=True, methods=['get', 'post', 'patch', 'delete'], url_path='contributors')
+    def contributors(self, request, pk=None):
+        project = self.get_object()
+
+        if request.method == 'GET':
+            contributors = self.get_contributors_queryset()
+            serializer = ContributorSerializer(contributors, many=True)
+            return Response(serializer.data)
+
+        elif request.method == 'POST':
+            contributor_username = request.data.get('username')
+            if contributor_username:
+                contributor = User.objects.get(username=contributor_username)
+                project.contributors.add(contributor)
+                return Response({'message': 'Contributor added successfully.'}, status=status.HTTP_201_CREATED)
+            else:
+                return Response({'error': 'Invalid username.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        elif request.method == 'PATCH':
+            contributor_username = request.data.get('username')
+            if contributor_username:
+                contributor = User.objects.get(username=contributor_username)
+                project.contributors.remove(contributor)
+                return Response({'message': 'Contributor removed successfully.'})
+            else:
+                return Response({'error': 'Invalid username.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        elif request.method == 'DELETE':
+            contributor_username = request.data.get('username')
+            if contributor_username:
+                contributor = User.objects.get(username=contributor_username)
+                project.contributors.remove(contributor)
+                return Response({'message': 'Contributor removed successfully.'})
+            else:
+                return Response({'error': 'Invalid username.'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ContributorViewset(ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    queryset = Contributor.objects.all()
+    serializer_class = ContributorSerializer
+
+
+class ProjectIssuesListView(ModelViewSet):
+    serializer_class = IssueSerializer
+    permission_classes = [IsAuthenticated, IsProjectContributor]
+
+    def get_queryset(self):
+        project_id = self.kwargs['project_id']
+        return Issue.objects.filter(project_id=project_id)
 
 
 class IssueViewset(ModelViewSet):

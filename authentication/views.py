@@ -3,7 +3,9 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework import generics
 from authentication.models import User
-from authentication.serializers import UserSerializer
+from authentication.serializers import UserSerializer, UserListSerializer
+from rest_framework.permissions import IsAuthenticated
+from authentication.permissions import IsUserSelf
 
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.settings import api_settings
@@ -26,7 +28,7 @@ class UserRegistrationView(generics.CreateAPIView):
 
 class UserListView(generics.ListCreateAPIView):
     queryset = User.objects.all()
-    serializer_class = UserSerializer
+    serializer_class = UserListSerializer
     form_class = UserRegistrationForm
 
     def create(self, request, *args, **kwargs):
@@ -42,6 +44,7 @@ class UserListView(generics.ListCreateAPIView):
 class UserDetailView(generics.RetrieveUpdateDestroyAPIView):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated, IsUserSelf]
 
 
 class UserLoginApiView(ObtainAuthToken):

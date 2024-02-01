@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
-from .models import Project, Issue, Comment
+from .models import Project, Issue, Comment, Contributor
+from authentication.models import User
 from authentication.serializers import UserSerializer
 
 
@@ -15,11 +16,8 @@ class ProjectListSerializer(ModelSerializer):
         request = self.context.get('request')
         current_user = request.user
 
-        contributors = validated_data.get('contributors', [])
-        contributors.insert(0, current_user)
-
         validated_data['author_project'] = current_user
-        validated_data['contributors'] = contributors
+        validated_data['contributors'] = [current_user]
         validated_data['type'] = self.initial_data.get('type')
 
         return super().create(validated_data)
@@ -33,18 +31,14 @@ class ProjectDetailSerializer(ModelSerializer):
         model = Project
         fields = '__all__'
 
-    def update(self, instance, validated_data):
-        if 'contributors' in self.context['request'].data:
-            contributors = self.context['request'].data.get('contributors').split(',')
-            if contributors and contributors != ['']:
-                if str(instance.author_project.id) not in contributors:
-                    contributors.append(str(instance.author_project.id))
-            else:
-                contributors = [str(instance.author_project.id)]
-            instance.contributors.set(contributors)
 
-        instance = super().update(instance, validated_data)
-        return instance
+class ContributorSerializer(ModelSerializer):
+    id = serializers.IntegerField(source='user.id', read_only=True)
+    user = serializers.CharField(source='user.username', read_only=True)
+
+    class Meta:
+        model = Contributor
+        fields = ['id', 'user']
 
 
 class IssueSerializer(ModelSerializer):
