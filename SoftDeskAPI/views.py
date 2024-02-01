@@ -3,7 +3,7 @@ from rest_framework.decorators import action
 
 from rest_framework.permissions import IsAuthenticated
 from .permissions import IsProjectAuthor, IsIssueAuthor, \
-    IsCommentAuthor, IsProjectContributor
+    IsCommentAuthor, IsProjectContributor, IsProjectForIssueContributor
 from rest_framework.generics import RetrieveUpdateDestroyAPIView
 
 from rest_framework.viewsets import ModelViewSet
@@ -98,7 +98,8 @@ class ContributorViewset(ModelViewSet):
 
 class IssueViewset(ModelViewSet):
     serializer_class = IssueSerializer
-    permission_classes = [IsAuthenticated, IsProjectContributor]
+    permission_classes = [IsAuthenticated, IsProjectForIssueContributor]
+    print('Issue view set')
 
     def get_queryset(self):
         project_id = self.kwargs['project_id']
@@ -122,7 +123,7 @@ class IssueViewset(ModelViewSet):
         if self.action in ['update', 'partial_update', 'destroy']:
             permission_classes = [IsAuthenticated, IsIssueAuthor]
         elif self.action == 'list':
-            permission_classes = [IsAuthenticated, IsProjectContributor]
+            permission_classes = [IsAuthenticated, IsProjectForIssueContributor]
         else:
             permission_classes = self.permission_classes
         return [permission() for permission in permission_classes]
