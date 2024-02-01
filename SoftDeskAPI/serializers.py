@@ -41,10 +41,25 @@ class ContributorSerializer(ModelSerializer):
         fields = ['id', 'user']
 
 
-class IssueSerializer(ModelSerializer):
+class IssueSerializer(serializers.ModelSerializer):
+    author_issue = serializers.CharField(source='author_issue.username', read_only=True)
+
     class Meta:
         model = Issue
         fields = '__all__'
+        extra_kwargs = {
+            'project': {'read_only': True},
+        }
+
+    def create(self, validated_data):
+        request = self.context['request']
+        validated_data['author_issue'] = request.user
+
+        project_id = self.context['view'].kwargs['project_id']
+        project = Project.objects.get(id=project_id)
+        validated_data['project'] = project
+
+        return super().create(validated_data)
 
 
 class CommentSerializer(ModelSerializer):

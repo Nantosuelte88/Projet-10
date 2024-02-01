@@ -96,21 +96,27 @@ class ContributorViewset(ModelViewSet):
     serializer_class = ContributorSerializer
 
 
-class ProjectIssuesListView(ModelViewSet):
+class IssueViewset(ModelViewSet):
     serializer_class = IssueSerializer
     permission_classes = [IsAuthenticated, IsProjectContributor]
 
     def get_queryset(self):
         project_id = self.kwargs['project_id']
+        print("project_id:", project_id)  # Affiche l'ID du projet dans la console
         return Issue.objects.filter(project_id=project_id)
 
+    def create(self, request, *args, **kwargs):
+        print("create() called")
+        # Récupérer l'ID du projet à partir des paramètres de l'URL
+        project_id = self.kwargs['project_id']
+        project = Project.objects.get(id=project_id)
 
-class IssueViewset(ModelViewSet):
-    serializer_class = IssueSerializer
-    permission_classes = [IsAuthenticated]
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(author_issue=self.request.user, project=project)
 
-    def get_queryset(self):
-        return Issue.objects.all()
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def get_permissions(self):
         if self.action in ['update', 'partial_update', 'destroy']:
