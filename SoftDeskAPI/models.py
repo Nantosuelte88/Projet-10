@@ -55,6 +55,7 @@ class Issue (models.Model):
     tag = models.CharField(max_length=15, choices=TAG_CHOICES)
     progress_status = models.CharField(max_length=15, choices=PROGRESS_CHOICES, default='To do')
     created_on = models.DateTimeField(auto_now_add=True)
+    assigned_to = models.ForeignKey(Contributor, on_delete=models.CASCADE, blank=True, null=True)
 
 
 class Comment(models.Model):

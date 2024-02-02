@@ -43,6 +43,12 @@ class ContributorSerializer(ModelSerializer):
 
 class IssueSerializer(serializers.ModelSerializer):
     author_issue = serializers.CharField(source='author_issue.username', read_only=True)
+    assigned_to = serializers.SerializerMethodField(read_only=True)
+
+    def get_assigned_to(self, obj):
+        if obj.assigned_to:
+            return obj.assigned_to.user.username
+        return None
 
     class Meta:
         model = Issue
@@ -57,8 +63,14 @@ class IssueSerializer(serializers.ModelSerializer):
 
         project_id = self.context['view'].kwargs['project_id']
         project = Project.objects.get(id=project_id)
-        validated_data['project'] = project
+        assigned_to_id = validated_data.get('assigned_to')
 
+        if assigned_to_id:
+            contributor = Contributor.objects.filter(user_id=assigned_to_id, project=project)
+            if not contributor.exists():
+                raise serializers.ValidationError("L'utilisateur assigné n'est pas un contributeur du projet!")
+
+        validated_data['project'] = project
         return super().create(validated_data)
 
 

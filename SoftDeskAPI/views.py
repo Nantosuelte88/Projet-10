@@ -1,4 +1,5 @@
 from rest_framework import status
+from rest_framework import serializers
 from rest_framework.decorators import action
 
 from rest_framework.permissions import IsAuthenticated
@@ -99,7 +100,6 @@ class ContributorViewset(ModelViewSet):
 class IssueViewset(ModelViewSet):
     serializer_class = IssueSerializer
     permission_classes = [IsAuthenticated, IsProjectForIssueContributor]
-    print('Issue view set')
 
     def get_queryset(self):
         project_id = self.kwargs['project_id']
@@ -107,10 +107,15 @@ class IssueViewset(ModelViewSet):
         return Issue.objects.filter(project_id=project_id)
 
     def create(self, request, *args, **kwargs):
-        print("create() called")
         # Récupérer l'ID du projet à partir des paramètres de l'URL
         project_id = self.kwargs['project_id']
         project = Project.objects.get(id=project_id)
+        assigned_to_id = self.request.data.get('assigned_to')
+
+        if assigned_to_id:
+            contributor = Contributor.objects.filter(user_id=assigned_to_id, project=project)
+            if not contributor.exists():
+                raise serializers.ValidationError("L'utilisateur assigné n'est pas un contributeur du projet!")
 
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -118,6 +123,22 @@ class IssueViewset(ModelViewSet):
 
         headers = self.get_success_headers(serializer.data)
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    def perform_update(self, serializer):
+        issue = self.get_object()  # Récupérer l'instance de l'issue à mettre à jour
+        assigned_to_id = self.request.data.get('assigned_to')
+        project_id = issue.project_id
+
+        if assigned_to_id:
+            contributor = Contributor.objects.filter(user_id=assigned_to_id, project_id=project_id)
+            if not contributor.exists():
+                raise serializers.ValidationError(
+                    "L'utilisateur assigné n'est pas un contributeur du projet correspondant.")
+
+            contributor_instance = contributor.first()
+            serializer.save(assigned_to=contributor_instance)
+        else:
+            serializer.save()
 
     def get_permissions(self):
         if self.action in ['update', 'partial_update', 'destroy']:
