@@ -152,14 +152,36 @@ class IssueViewset(ModelViewSet):
 
 class CommentViewset(ModelViewSet):
     serializer_class = CommentSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsProjectForIssueContributor]
 
     def get_queryset(self):
-        return Comment.objects.all()
+        project_id = self.kwargs['project_id']
+        issue_id = self.kwargs['issue_id']
+        print("issue_id:", issue_id)  # Affiche l'ID de l'issue dans la console
+        return Comment.objects.filter(issue__project_id=project_id, issue_id=issue_id)
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    def create(self, request, *args, **kwargs):
+        # Récupérer l'ID de l'issue à partir des paramètres de l'URL
+        issue_id = self.kwargs['issue_id']
+        issue = Issue.objects.get(id=issue_id)
+
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(author_comment=self.request.user, issue=issue)
+
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def get_permissions(self):
         if self.action in ['update', 'partial_update', 'destroy']:
             permission_classes = [IsAuthenticated, IsCommentAuthor]
+        elif self.action == 'list':
+            permission_classes = [IsAuthenticated, IsProjectForIssueContributor]
         else:
             permission_classes = self.permission_classes
         return [permission() for permission in permission_classes]
