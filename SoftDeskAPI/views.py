@@ -5,7 +5,6 @@ from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from .permissions import IsProjectAuthor, IsIssueAuthor, \
     IsCommentAuthor, IsProjectContributor, IsProjectForIssueContributor
-from rest_framework.generics import RetrieveUpdateDestroyAPIView
 
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.views import APIView
@@ -26,6 +25,8 @@ class ApiHome(APIView):
 
 
 class ProjectViewset(ModelViewSet):
+    # Classe pour gérer les vues relatives aux projets
+
     permission_classes = [IsAuthenticated]
     queryset = Project.objects.all()
 
@@ -33,11 +34,13 @@ class ProjectViewset(ModelViewSet):
     detail_serializer_class = ProjectDetailSerializer
 
     def get_serializer_class(self):
+        # Renvoie la classe de sérialiseur en fonction de l'action
         if self.action in ['retrieve', 'update', 'partial_update']:
             return self.detail_serializer_class
         return super().get_serializer_class()
 
     def get_permissions(self):
+        # Renvoie la liste des classes de permissions en fonction de l'action
         if self.action == 'retrieve':
             permission_classes = [IsAuthenticated, IsProjectContributor]
         elif self.action in ['update', 'partial_update', 'destroy', 'contributors']:
@@ -47,23 +50,29 @@ class ProjectViewset(ModelViewSet):
         return [permission() for permission in permission_classes]
 
     def perform_create(self, serializer):
+        # Crée un nouveau projet avec l'utilisateur actuel comme auteur et
+        # ajout de l'utilisateur actuel comme contributeur
         project = serializer.save(author_project=self.request.user)
         project.contributors.add(self.request.user)
 
     def get_contributors_queryset(self):
+        # Renvoie le queryset des contributeurs pour le projet actuel
         project = self.get_object()
         return Contributor.objects.filter(project=project)
 
     @action(detail=True, methods=['get', 'post', 'patch', 'delete'], url_path='contributors')
+    # Vue personnalisée pour gérer les contributeurs d'un projet
     def contributors(self, request, pk=None):
         project = self.get_object()
 
         if request.method == 'GET':
+            # Récupère la liste des contributeurs pour le projet et les sérialise
             contributors = self.get_contributors_queryset()
             serializer = ContributorSerializer(contributors, many=True)
             return Response(serializer.data)
 
         elif request.method == 'POST':
+            # Ajoute un contributeur au projet
             contributor_username = request.data.get('username')
             if contributor_username:
                 contributor = User.objects.get(username=contributor_username)
@@ -73,6 +82,7 @@ class ProjectViewset(ModelViewSet):
                 return Response({'error': 'Invalid username.'}, status=status.HTTP_400_BAD_REQUEST)
 
         elif request.method == 'PATCH':
+            # Supprime un contributeur du projet
             contributor_username = request.data.get('username')
             if contributor_username:
                 contributor = User.objects.get(username=contributor_username)
@@ -82,6 +92,7 @@ class ProjectViewset(ModelViewSet):
                 return Response({'error': 'Invalid username.'}, status=status.HTTP_400_BAD_REQUEST)
 
         elif request.method == 'DELETE':
+            # Supprime un contributeur du projet
             contributor_username = request.data.get('username')
             if contributor_username:
                 contributor = User.objects.get(username=contributor_username)
@@ -92,22 +103,25 @@ class ProjectViewset(ModelViewSet):
 
 
 class ContributorViewset(ModelViewSet):
+    # Classe pour gérer les vues relatives aux contributeurs
     permission_classes = [IsAuthenticated]
     queryset = Contributor.objects.all()
     serializer_class = ContributorSerializer
 
 
 class IssueViewset(ModelViewSet):
+    # Classe pour gérer les vues relatives aux issues
+
     serializer_class = IssueSerializer
     permission_classes = [IsAuthenticated, IsProjectForIssueContributor]
 
     def get_queryset(self):
+        # Récupère les objets Issue associés au projet spécifié dans les paramètres de l'URL
         project_id = self.kwargs['project_id']
-        print("project_id:", project_id)  # Affiche l'ID du projet dans la console
         return Issue.objects.filter(project_id=project_id)
 
     def create(self, request, *args, **kwargs):
-        # Récupérer l'ID du projet à partir des paramètres de l'URL
+        # Crée une nouvelle issue pour le projet spécifié dans les paramètres de l'URL
         project_id = self.kwargs['project_id']
         project = Project.objects.get(id=project_id)
         assigned_to_id = self.request.data.get('assigned_to')
@@ -125,6 +139,7 @@ class IssueViewset(ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def perform_update(self, serializer):
+        # Met à jour une issue existante et vérifie si l'utilisateur assigné est un contributeur du projet
         issue = self.get_object()  # Récupérer l'instance de l'issue à mettre à jour
         assigned_to_id = self.request.data.get('assigned_to')
         project_id = issue.project_id
@@ -141,6 +156,7 @@ class IssueViewset(ModelViewSet):
             serializer.save()
 
     def get_permissions(self):
+        # Définit les autorisations requises en fonction de l'action demandée
         if self.action in ['update', 'partial_update', 'destroy']:
             permission_classes = [IsAuthenticated, IsIssueAuthor]
         elif self.action == 'list':
@@ -155,18 +171,19 @@ class CommentViewset(ModelViewSet):
     permission_classes = [IsAuthenticated, IsProjectForIssueContributor]
 
     def get_queryset(self):
+        # Récupère les commentaires associés à l'issue spécifiée dans les paramètres de l'URL
         project_id = self.kwargs['project_id']
         issue_id = self.kwargs['issue_id']
-        print("issue_id:", issue_id)  # Affiche l'ID de l'issue dans la console
         return Comment.objects.filter(issue__project_id=project_id, issue_id=issue_id)
 
     def retrieve(self, request, *args, **kwargs):
+        # Récupère et renvoie un commentaire spécifique
         instance = self.get_object()
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
 
     def create(self, request, *args, **kwargs):
-        # Récupérer l'ID de l'issue à partir des paramètres de l'URL
+        # Crée un nouveau commentaire pour l'issue spécifiée dans les paramètres de l'URL
         issue_id = self.kwargs['issue_id']
         issue = Issue.objects.get(id=issue_id)
 
@@ -178,6 +195,7 @@ class CommentViewset(ModelViewSet):
         return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
     def get_permissions(self):
+        # Définit les autorisations requises en fonction de l'action demandée
         if self.action in ['update', 'partial_update', 'destroy']:
             permission_classes = [IsAuthenticated, IsCommentAuthor]
         elif self.action == 'list':

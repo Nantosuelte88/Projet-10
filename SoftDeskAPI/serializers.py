@@ -1,11 +1,12 @@
 from rest_framework import serializers
 from rest_framework.serializers import ModelSerializer
 from .models import Project, Issue, Comment, Contributor
-from authentication.models import User
-from authentication.serializers import UserSerializer
 
 
 class ProjectListSerializer(ModelSerializer):
+    # Serializer pour la liste des projets
+
+    # Champ pour afficher le nom d'utilisateur de l'auteur du projet
     author_project = serializers.CharField(source='author_project.username', read_only=True)
 
     class Meta:
@@ -13,9 +14,13 @@ class ProjectListSerializer(ModelSerializer):
         fields = ['id', 'name', 'author_project']
 
     def create(self, validated_data):
+        # Méthode pour créer un nouveau projet
+
+        # Récupérer la requête en cours depuis le contexte
         request = self.context.get('request')
         current_user = request.user
 
+        # Définir l'auteur du projet comme l'utilisateur actuel et l'ajoute aux contributeurs
         validated_data['author_project'] = current_user
         validated_data['contributors'] = [current_user]
         validated_data['type'] = self.initial_data.get('type')
@@ -24,6 +29,9 @@ class ProjectListSerializer(ModelSerializer):
 
 
 class ProjectDetailSerializer(ModelSerializer):
+    # Serializer pour les détails d'un projet
+
+    # Champs pour afficher le nom d'utilisateur de l'auteur du projet et les contributeurs du projet
     author_project = serializers.CharField(source='author_project.username', read_only=True)
     contributors = serializers.SlugRelatedField(many=True, read_only=True, slug_field='username')
 
@@ -33,6 +41,9 @@ class ProjectDetailSerializer(ModelSerializer):
 
 
 class ContributorSerializer(ModelSerializer):
+    # Serializer pour les contributeurs
+
+    # Champs pour l'ID et le nom d'utilisateur de l'utilisateur
     id = serializers.IntegerField(source='user.id', read_only=True)
     user = serializers.CharField(source='user.username', read_only=True)
 
@@ -42,10 +53,16 @@ class ContributorSerializer(ModelSerializer):
 
 
 class IssueSerializer(serializers.ModelSerializer):
+    # Serializer pour les problèmes (issues)
+
+    # Champ pour afficher le nom d'utilisateur de l'auteur du problème
     author_issue = serializers.CharField(source='author_issue.username', read_only=True)
+
+    # Champ pour afficher le nom d'utilisateur de l'utilisateur assigné au problème
     assigned_to = serializers.SerializerMethodField(read_only=True)
 
     def get_assigned_to(self, obj):
+        # Méthode pour obtenir le nom d'utilisateur de l'utilisateur assigné
         if obj.assigned_to:
             return obj.assigned_to.user.username
         return None
@@ -58,6 +75,7 @@ class IssueSerializer(serializers.ModelSerializer):
         }
 
     def create(self, validated_data):
+        # Méthode pour créer un nouveau problème
         request = self.context['request']
         validated_data['author_issue'] = request.user
 
@@ -75,7 +93,13 @@ class IssueSerializer(serializers.ModelSerializer):
 
 
 class CommentSerializer(ModelSerializer):
+    # Serializer pour les commentaires
+
+    # Champ pour afficher le nom d'utilisateur de l'auteur du commentaire
     author_comment = serializers.CharField(source='author_comment.username', read_only=True)
+
+    # Champ pour obtenir le lien du projet lié au commentaire
+    project_link = serializers.SerializerMethodField()
 
     class Meta:
         model = Comment
@@ -84,7 +108,24 @@ class CommentSerializer(ModelSerializer):
             'issue': {'read_only': True},
         }
 
+    def get_project_link(self, obj):
+        # Méthode pour obtenir le lien du projet lié au commentaire
+        request = self.context.get('request')
+        if request is not None:
+            path = f'/api/projects/{obj.issue.project_id}/'
+            return request.build_absolute_uri(path)
+        return None
+
+    def to_representation(self, instance):
+        # Méthode pour personnaliser la représentation des données
+        data = super().to_representation(instance)
+        request = self.context.get('request')
+        if request is not None:
+            data['project_link'] = self.get_project_link(instance)
+        return data
+
     def create(self, validated_data):
+        # Méthode pour créer un nouveau commentaire
         request = self.context['request']
         validated_data['author_comment'] = request.user
 

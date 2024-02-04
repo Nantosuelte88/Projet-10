@@ -6,6 +6,7 @@ from datetime import timedelta
 
 
 def validate_age(date_of_birth):
+    # Définit la limite d'âge comme 15 ans avant la date actuelle
     age_limit = timezone.now() - timedelta(days=15 * 365)
 
     if date_of_birth > age_limit.date():
@@ -13,6 +14,7 @@ def validate_age(date_of_birth):
 
 
 class User(AbstractUser):
+    # Modèle utilisateur personnalisé qui étend la classe AbstractUser de Django avec des champs supplémentaires
     date_of_birth = models.DateField(validators=[validate_age])
     can_be_contacted = models.BooleanField(default=True)
     can_data_be_shared = models.BooleanField(default=True)

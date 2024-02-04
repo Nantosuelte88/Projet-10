@@ -1,10 +1,11 @@
 from django.db import models
 from authentication.models import User
 import uuid
-from django.urls import reverse
 
 
 class Project (models.Model):
+    # Modèle pour représenter un projet
+
     TYPE_CHOICES = [
         ('back-end', 'Back-end'),
         ('front-end', 'Front-end'),
@@ -21,6 +22,8 @@ class Project (models.Model):
 
 
 class Contributor (models.Model):
+    # Modèle pour représenter un contributeur à un projet
+
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     project = models.ForeignKey(Project, on_delete=models.CASCADE)
 
@@ -29,6 +32,8 @@ class Contributor (models.Model):
 
 
 class Issue (models.Model):
+    # Modèle pour représenter une issue (problème) dans un projet
+
     PRIORITY_CHOICES = [
         ('LOW', 'Basse'),
         ('MEDIUM', 'Moyenne'),
@@ -59,9 +64,10 @@ class Issue (models.Model):
 
 
 class Comment(models.Model):
+    # Modèle pour représenter un commentaire sur une issue
+
     uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     issue = models.ForeignKey(Issue, on_delete=models.CASCADE, related_name='comments')
     author_comment = models.ForeignKey(User, on_delete=models.CASCADE)
     description = models.TextField()
     created_on = models.DateTimeField(auto_now_add=True)
-    # faire le lien
