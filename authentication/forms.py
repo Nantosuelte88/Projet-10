@@ -4,8 +4,8 @@ from .models import User
 
 
 class UserRegistrationForm(UserCreationForm):
-    can_be_contacted = forms.BooleanField(initial=True, required=False, widget=forms.CheckboxInput())
-    can_data_be_shared = forms.BooleanField(initial=True, required=False, widget=forms.CheckboxInput())
+    can_be_contacted = forms.BooleanField(initial=False, required=False, widget=forms.CheckboxInput())
+    can_data_be_shared = forms.BooleanField(initial=False, required=False, widget=forms.CheckboxInput())
 
     class Meta(UserCreationForm.Meta):
         model = User

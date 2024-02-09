@@ -18,10 +18,15 @@ class UserRegistrationView(generics.CreateAPIView):
         # Méthode qui effectue la création de l'utilisateur.
         form = self.form_class(self.request.data)
         if form.is_valid():
+            print("Données du formulaire :", form.cleaned_data)
             user = form.save(commit=False)
-            user.set_password(form.cleaned_data['password'])
+            user.set_password(form.cleaned_data['password1'])
             user.save()
+            serializer.instance = user
             serializer.save()
+
+        else:
+            print("Erreurs de validation du formulaire :", form.errors)
 
 
 class UserListView(generics.ListAPIView):

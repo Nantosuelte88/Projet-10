@@ -11,7 +11,7 @@ class ProjectListSerializer(ModelSerializer):
 
     class Meta:
         model = Project
-        fields = ['id', 'name', 'author_project']
+        fields = ['id', 'name', 'author_project', 'description']
 
     def create(self, validated_data):
         # Méthode pour créer un nouveau projet
